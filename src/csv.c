@@ -1,0 +1,62 @@
+#include "csv.h"
+#include <stdio.h>
+#include <string.h>
+
+struct archivo_csv {
+	FILE *archivo_nombre;
+	char separador;
+};
+
+struct archivo_csv *abrir_archivo_csv(const char *nombre_archivo,
+				      char separador)
+{
+	struct archivo_csv *pokedex_file = malloc(sizeof(struct archivo_csv));
+	pokedex_file->archivo_nombre = fopen(nombre_archivo, "r");
+	if (pokedex_file->archivo_nombre == NULL)
+		return NULL;
+	pokedex_file->separador = separador;
+	return pokedex_file;
+}
+
+size_t leer_linea_csv(struct archivo_csv *archivo, size_t columnas,
+		      bool (*funciones[])(const char *, void *), void *ctx[])
+{
+	char linea[300];
+	size_t col_read = 0;
+	if (fgets(linea, 300, archivo->archivo_nombre) != NULL) {
+		char *inicio = linea;
+		while (col_read < columnas) {
+			char *pos_delimiter =
+				strchr(inicio, archivo->separador);
+			if (pos_delimiter != NULL) {
+				size_t longiud_palabra =
+					(size_t)pos_delimiter - (size_t)inicio;
+
+				char palabra[longiud_palabra + 1];
+				strncpy(palabra, inicio, longiud_palabra);
+
+				bool check = funciones[col_read](palabra,
+								 ctx[col_read]);
+				if (check == false)
+					return 0;
+
+				inicio = pos_delimiter + 1;
+
+			} else if (col_read == columnas - 1) {
+				bool check = funciones[col_read](inicio,
+								 ctx[col_read]);
+				if (check == false)
+					return 0;
+			}
+
+			col_read++;
+		}
+	}
+	return col_read;
+}
+
+void cerrar_archivo_csv(struct archivo_csv *archivo)
+{
+	fclose(archivo->archivo_nombre);
+	free(archivo);
+}
