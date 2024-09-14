@@ -112,6 +112,6 @@ bool pokedex_ordenar(struct pokedex* pokedex){
 			}
 		}
 	}
-	
-
+	free(aux);
+	return true;
 }
