@@ -13,8 +13,10 @@ struct archivo_csv *abrir_archivo_csv(const char *nombre_archivo,
 {
 	struct archivo_csv *pokedex_file = malloc(sizeof(struct archivo_csv));
 	pokedex_file->archivo_nombre = fopen(nombre_archivo, "r");
-	if (pokedex_file->archivo_nombre == NULL)
+	if (pokedex_file->archivo_nombre == NULL) {
+		free(pokedex_file);
 		return NULL;
+	}
 	pokedex_file->separador = separador;
 	return pokedex_file;
 }
@@ -37,27 +39,30 @@ size_t leer_linea_csv(struct archivo_csv *archivo, size_t columnas,
 				char palabra[longiud_palabra + 1];
 				strncpy(palabra, inicio, longiud_palabra);
 				palabra[longiud_palabra] = '\0';
+				if (funciones[col_read] != NULL) {
+					bool check = funciones[col_read](
+						palabra, ctx[col_read]);
+					if (check == false)
+						return col_read;
 
-				bool check = funciones[col_read](palabra,
-								 ctx[col_read]);
-				if (check == false)
-					return 0;
+					inicio = pos_delimiter + 1;
 
-				inicio = pos_delimiter + 1;
+				} else if (col_read == columnas - 1) {
+					if (funciones[col_read] == NULL)
+						return col_read;
+					bool check = funciones[col_read](
+						inicio, ctx[col_read]);
+					if (check == false)
+						return col_read;
+				}
 
-			} else if (col_read == columnas - 1) {
-				bool check = funciones[col_read](inicio,
-								 ctx[col_read]);
-				if (check == false)
-					return 0;
+				col_read++;
 			}
-
-			col_read++;
 		}
+		return col_read;
 	}
 	return col_read;
 }
-
 void cerrar_archivo_csv(struct archivo_csv *archivo)
 {
 	if (fclose(archivo->archivo_nombre) == (-1))
